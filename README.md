@@ -4,8 +4,8 @@ This Python pipeline is to show how to run Whisper on Intel CPU/GPU/NPU thru [ON
 This implementation is derived from sherpa-onnx project
 https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
 
-### Key improvement
-* Use K-V cache to speed up inference time
+### Key features
+* Use K-V cache to speed up inference
 * Models are converted to static (mainly for NPU)
 
 
@@ -30,7 +30,7 @@ Usage
 usage: python whisper_onnx.py --model_type <model_type> --device <device> voice.wav
 ```
 * Supported model types: ```tiny``` ```base``` ```small``` ```medium``` ```large-v1``` ```large-v2``` ```large```(aka large v3) and ```turbo```(aka large v3 turbo)<br>
-* Supported devices: ```CPU``` ```GPU``` ```NPU```. If device is not specified, CPUExecutionProvider will be used by default<br> 
+* Supported devices: ```CPU``` ```GPU``` ```NPU```. If ```---device``` is not specified, CPUExecutionProvider will be used by default<br> 
 
 Run on CPU
 ```
