@@ -98,5 +98,16 @@ How are you doing today?
 (python313_general) C:\GitHub\whisper-ovep-python-static>
 ```
 ## Known issues
-Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
+1. The following warning appears when running the pipeline thru OVEP for the 1st time
+```
+C:\Users\...\site-packages\onnxruntime\capi\onnxruntime_inference_collection.py:123:
+User Warning: Specified provider 'OpenVINOExecutionProvider' is not in available provider names.
+Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
+```
+Solution is to simply reinstall ```onnxruntime-openvino```
+```
+pip uninstall -y onnxruntime-openvino
+pip install onnxruntime-openvino
+```
+2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
 
