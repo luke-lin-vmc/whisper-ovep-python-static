@@ -119,9 +119,10 @@ C:\Users\...\site-packages\onnxruntime\capi\onnxruntime_inference_collection.py:
 User Warning: Specified provider 'OpenVINOExecutionProvider' is not in available provider names.
 Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
 ```
-Solution is to simply reinstall ```onnxruntime-openvino```
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Solution is to simply reinstall ```onnxruntime-openvino```
 ```
 pip uninstall -y onnxruntime-openvino
 pip install onnxruntime-openvino~=1.23.0
 ```
 2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
+* This issue will be fixed in OpenVINO 2026.0
