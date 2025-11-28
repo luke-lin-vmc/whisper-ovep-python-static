@@ -51,7 +51,7 @@ def get_args():
     parser.add_argument(
         "--device",
         type=str,
-        help="Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, ORT CPU will be used by default."
+        help="Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used by default."
     )
 
     parser.add_argument(

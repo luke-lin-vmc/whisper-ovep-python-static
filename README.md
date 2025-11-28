@@ -1,8 +1,11 @@
 # About whisper-ovep-python-static
 This Python pipeline is to show how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html)
 
-This implementation is derived from sherpa-onnx project
+This implementation is forked from sherpa-onnx project
 https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
+
+The audio sample ```how_are_you_doing_today.wav``` is downloaded from
+https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/how_are_you_doing_today.wav
 
 ### Key features
 * Use K-V cache to speed up inference
@@ -27,11 +30,24 @@ base-tokens.txt
 ## Run
 Usage
 ```
-Usage: python whisper_onnx.py --model_type <model_type> --device <device> voice.wav
-```
-* Supported model types: ```tiny``` ```base``` ```small``` ```medium``` ```large-v1``` ```large-v2``` ```large```(aka large v3) and ```turbo```(aka large v3 turbo)<br>
-* Supported devices: ```CPU``` ```GPU``` ```NPU```. If ```--device``` is not specified, CPUExecutionProvider will be used by default<br> 
+usage: whisper_onnx.py [-h] --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo} [--language LANGUAGE]
+                       [--task {transcribe,translate}] [--device DEVICE]
+                       sound_file
 
+positional arguments:
+  sound_file            Path to the test wave
+
+options:
+  -h, --help            show this help message and exit
+  --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo}
+                        Model type
+  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, we will
+                        detect the language using the first 30s of the input audio
+  --task {transcribe,translate}
+                        Valid values are: transcribe, translate
+  --device DEVICE       Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used
+                        by default.
+```
 Run on CPU
 ```
 python whisper_onnx.py --model_type base --device CPU how_are_you_doing_today.wav
@@ -61,7 +77,7 @@ The test was done on a ```Intel(R) Core(TM) Ultra 7 268V (Lunar Lake)``` system,
 | large<br>(large v3)       | OK     | OK     | Fail** |
 | turbo<br>(large v3 turbo) | OK     | OK     | OK     |
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pileline worked fine but the EN speech was misdetected as PL<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pileline worked fine but the EN speech was misdetected as PL, need to specify "```--language en```" to get correct result<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**&nbsp;Pileline didn't worked due to insufficient memory
 
 ### Sample log (device is NPU)
@@ -106,7 +122,6 @@ Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
 Solution is to simply reinstall ```onnxruntime-openvino```
 ```
 pip uninstall -y onnxruntime-openvino
-pip install onnxruntime-openvino
+pip install onnxruntime-openvino~=1.23.0
 ```
 2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
-
