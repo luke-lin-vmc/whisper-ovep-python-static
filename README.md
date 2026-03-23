@@ -7,10 +7,11 @@ https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
 The audio sample ```how_are_you_doing_today.wav``` is downloaded from
 https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/how_are_you_doing_today.wav
 
+Other audio samples ("```en.wav```", "```ja.wav```" and "```zh.wav```") are downloaded from [Hugging Face sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/tree/main/test_wavs)
+
 ### Key features
 * Use K-V cache to speed up inference
-* Models are converted to static (mainly for NPU)
-
+* Models are converted to static (required for NPU)
 
 # Quick Steps
 ## Prepare models
@@ -41,12 +42,12 @@ options:
   -h, --help            show this help message and exit
   --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo}
                         Model type
-  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, we will
-                        detect the language using the first 30s of the input audio
+  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, language
+                        will be detected automatically
   --task {transcribe,translate}
-                        Valid values are: transcribe, translate
-  --device DEVICE       Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used
-                        by default.
+                        Valid values are: transcribe, translate. Default task is transcribe
+  --device DEVICE       Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider
+                        will be used by default
 ```
 Run on CPU
 ```
@@ -60,11 +61,15 @@ Run on NPU
 ```
 python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
 ```
+Run on NPU, translate
+```
+python whisper_onnx.py --model_type base --device NPU --task translate zh.wav
+```
 :warning:[NOTE] The 1st time running on NPU will take long time (about 3 minutes) on model compiling. [OpenVINO Model Caching](https://docs.openvino.ai/2025/openvino-workflow/running-inference/optimize-inference/optimizing-latency/model-caching-overview.html) has been enabled for NPU to ease the issue. This feature will cache compiled models. Although the 1st run still takes long, but later runs can be faster as model compilation has been skipped.
 ## Tested Models and Devices
-The test was done on a ```Intel(R) Core(TM) Ultra 7 268V (Lunar Lake)``` system, with
-* ```iGPU: Intel(R) Arc(TM) 140V GPU, driver 32.0.101.8247 (10/22/2025)```
-* ```NPU: Intel(R) AI Boost, driver 32.0.100.4404 (11/7/2025)```
+The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
+* ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8247 (10/22/2025)```
+* ```NPU: Intel(R) AI Boost, driver 32.0.100.4621 (2/25/2026)```
 ### Result
 | Model                     | CPU    | GPU    | NPU    |
 |---------------------------|--------|--------|--------|
@@ -122,12 +127,12 @@ Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This would be caused by that both ```onnxruntime``` and ```onnxruntime-openvino``` are installed. Solution is to remove both of them then re-install ```onnxruntime-openvino```
 ```
 pip uninstall -y onnxruntime onnxruntime-openvino
-pip install onnxruntime-openvino~=1.23.0
+pip install onnxruntime-openvino~=1.24.1
 ```
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Or simply to re-install ```onnxruntime-openvino``` if you would like to keep ```onnxruntime```
 ```
 pip uninstall onnxruntime-openvino
-pip install onnxruntime-openvino~=1.23.0
+pip install onnxruntime-openvino~=1.24.1
 ```
 
 2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
