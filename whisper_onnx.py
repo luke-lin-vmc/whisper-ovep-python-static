@@ -35,9 +35,7 @@ def get_args():
         type=str,
         help="""The actual spoken language in the audio.
         Example values, en, de, zh, jp, fr.
-        If None, we will detect the language using the first 30s of the
-        input audio
-        """,
+        If None, language will be detected automatically""",
     )
 
     parser.add_argument(
@@ -45,13 +43,13 @@ def get_args():
         choices=["transcribe", "translate"],
         type=str,
         default="transcribe",
-        help="Valid values are: transcribe, translate",
+        help="Valid values are: transcribe, translate. Default task is transcribe",
     )
 
     parser.add_argument(
         "--device",
         type=str,
-        help="Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used by default."
+        help="Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used by default"
     )
 
     parser.add_argument(
@@ -400,7 +398,7 @@ def main():
 
     if args.task is not None:
         if model.is_multilingual is False and args.task != "transcribe":
-            print("This model supports only English. Please use --task=transcribe")
+            print("This model supports only English. Please use --task transcribe")
             return
         assert args.task in ["transcribe", "translate"], args.task
 
