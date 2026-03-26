@@ -1,19 +1,4 @@
-# About whisper-ovep-python-static
-This Python pipeline is to show how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html)
-
-This implementation is forked from sherpa-onnx project
-https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
-
-The audio sample ```how_are_you_doing_today.wav``` is downloaded from
-https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/how_are_you_doing_today.wav
-
-Other audio samples ("```en.wav```", "```ja.wav```" and "```zh.wav```") are downloaded from [Hugging Face sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/tree/main/test_wavs)
-
-### Key features
-* Use K-V cache to speed up inference
-* Models are converted to static (required for NPU)
-
-# Quick Steps
+# whisper-ovep-python-static plug-in (ABI) mode test
 ## Prepare models
 Run the following commands to export models
 ```
@@ -28,44 +13,16 @@ base-encoder.onnx
 base-decoder.onnx
 base-tokens.txt
 ```
+## Prepare OVEP plug-in DLLs
+* Input ```pip show pip``` to find your Python site-packages location.
+* Copy ```onnxruntime_providers_openvino_plugin.dll``` and ```onnxruntime_providers_openvino_plugin_impl.dll``` (under ```.\plugin```) into Python ```site-packages\openvino\libs```
+
+P.S. plugin DLLs are downloaded from [Intel private repo](https://gfx-assets-build.fm.intel.com/artifactory/onnxruntime-builds/ci/develop/onnxruntime-ci-develop-236/artifacts/Windows/bdba/)
+
 ## Run
-Usage
 ```
-usage: whisper_onnx.py [-h] --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo} [--language LANGUAGE]
-                       [--task {transcribe,translate}] [--device DEVICE]
-                       sound_file
-
-positional arguments:
-  sound_file            Path to the test wave
-
-options:
-  -h, --help            show this help message and exit
-  --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo}
-                        Model type
-  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, language
-                        will be detected automatically
-  --task {transcribe,translate}
-                        Valid values are: transcribe, translate. Default task is transcribe
-  --device DEVICE       Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider
-                        will be used by default
+python whisper_onnx_ABI.py --model_type base --device NPU --mode plugin --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
 ```
-Run on CPU
-```
-python whisper_onnx.py --model_type base --device CPU how_are_you_doing_today.wav
-```
-Run on GPU
-```
-python whisper_onnx.py --model_type base --device GPU how_are_you_doing_today.wav
-```
-Run on NPU
-```
-python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
-```
-Run on NPU, translate
-```
-python whisper_onnx.py --model_type base --device NPU --task translate zh.wav
-```
-:warning:[NOTE] The 1st time running on NPU will take long time (about 3 minutes) on model compiling. [OpenVINO Model Caching](https://docs.openvino.ai/2025/openvino-workflow/running-inference/optimize-inference/optimizing-latency/model-caching-overview.html) has been enabled for NPU to ease the issue. This feature will cache compiled models. Although the 1st run still takes long, but later runs can be faster as model compilation has been skipped.
 ## Tested Models and Devices
 The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
 * ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8247 (10/22/2025)```
@@ -73,67 +30,45 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 ### Result
 | Model                     | CPU    | GPU    | NPU    |
 |---------------------------|--------|--------|--------|
-| tiny                      | OK     | OK     | OK     |
 | base                      | OK     | OK     | OK     |
-| small                     | OK     | OK     | OK     |
-| medium                    | OK     | OK     | OK     |
-| large-v1                  | OK*    | OK*    | Fail** |
-| large-v2                  | OK     | OK     | Fail** |
-| large<br>(large v3)       | OK     | OK     | Fail** |
 | turbo<br>(large v3 turbo) | OK     | OK     | OK     |
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pileline worked fine but the EN speech was misdetected as PL, need to specify "```--language en```" to get correct result<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**&nbsp;Pileline didn't worked due to insufficient memory
 
 ### Sample log (device is NPU)
 ```
-(openvino_venv) C:\Github\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
+(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx_ABI.py --model_type base --device NPU --mode plugin --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
+Registering OpenVINO plugin: C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll
 Whisper encoder model: base-encoder.onnx
 Whisper encoder device: NPU
 Whisper decoder model: base-decoder.onnx
 Whisper decoder device: NPU
 Whisper tokens: base-tokens.txt
-Encoder device: OpenVINO EP with device = NPU
-Decoder device: OpenVINO EP with device = NPU
-Encoder processing time: 62.23 ms
+Execution Mode: Plugin
+Encoder device: OpenVINO EP with device = NPU (plugin mode)
+Decoder device: OpenVINO EP with device = NPU (plugin mode)
+Encoder processing time: 61.96 ms
 detecting language
-Decoder processing time: 20.30 ms
+Decoder processing time: 26.31 ms
 detected language:  en
 [50258, 50259, 50359, 50363]
-Decoder processing time: 10.84 ms
-Decoder processing time: 11.43 ms
-Decoder processing time: 13.22 ms
-Decoder processing time: 9.54 ms
-Decoder processing time: 9.77 ms
-Decoder processing time: 9.63 ms
-Decoder processing time: 9.06 ms
-Decoder processing time: 9.55 ms
-Decoder processing time: 9.18 ms
-Decoder processing time: 9.28 ms
+Decoder processing time: 9.85 ms
+Decoder processing time: 12.01 ms
+Decoder processing time: 9.58 ms
+Decoder processing time: 9.69 ms
+Decoder processing time: 9.74 ms
+Decoder processing time: 9.01 ms
+Decoder processing time: 9.72 ms
+Decoder processing time: 10.26 ms
+Decoder processing time: 8.85 ms
+Decoder processing time: 8.80 ms
 
 Transcribed:
 How are you doing today?
 
+Successfully unregistered Plugin EP
+
+(python313_venv) C:\GitHub\whisper-ovep-python-static>
 ```
 [Full log](https://github.com/luke-lin-vmc/whisper-ovep-python-static/blob/main/log_full.txt) (from scratch) is provided for reference
 
-## Known issues
-1. If the following warning appears when running the pipeline thru OVEP for the 1st time
-```
-C:\Users\...\site-packages\onnxruntime\capi\onnxruntime_inference_collection.py:123:
-User Warning: Specified provider 'OpenVINOExecutionProvider' is not in available provider names.
-Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
-```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This would be caused by that both ```onnxruntime``` and ```onnxruntime-openvino``` are installed. Solution is to remove both of them then re-install ```onnxruntime-openvino```
-```
-pip uninstall -y onnxruntime onnxruntime-openvino
-pip install onnxruntime-openvino~=1.24.1
-```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Or simply to re-install ```onnxruntime-openvino``` if you would like to keep ```onnxruntime```
-```
-pip uninstall onnxruntime-openvino
-pip install onnxruntime-openvino~=1.24.1
-```
-
-2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
-* This issue is supposed to be fixed in OpenVINO 2026.0
+## Reference
+https://github.com/intel-innersource/frameworks.ai.onnxruntime.samples/tree/main
