@@ -1,4 +1,4 @@
-# whisper-ovep-python-static plug-in (ABI) mode test
+# whisper-ovep-python-static plug-in (ABI) mode
 ## Prepare models
 Run the following commands to export models
 ```
@@ -68,7 +68,5 @@ Successfully unregistered Plugin EP
 
 (python313_venv) C:\GitHub\whisper-ovep-python-static>
 ```
-[Full log](https://github.com/luke-lin-vmc/whisper-ovep-python-static/blob/main/log_full.txt) (from scratch) is provided for reference
-
 ## Reference
 https://github.com/intel-innersource/frameworks.ai.onnxruntime.samples/tree/main
