@@ -21,7 +21,7 @@ P.S. plugin DLLs are downloaded from [Intel private repo](https://gfx-assets-bui
 
 ## Run
 ```
-python whisper_onnx_ABI.py --model_type base --device NPU --mode plugin --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
+python whisper_onnx.py --model_type base --device NPU --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
 ```
 ## Tested Models and Devices
 The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
@@ -35,36 +35,33 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 
 ### Sample log (device is NPU)
 ```
-(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx_ABI.py --model_type base --device NPU --mode plugin --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
-Registering OpenVINO plugin: C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll
+(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
+Registering execution provider: OpenVINOExecutionProvider, plugin: C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll
 Whisper encoder model: base-encoder.onnx
-Whisper encoder device: NPU
 Whisper decoder model: base-decoder.onnx
-Whisper decoder device: NPU
 Whisper tokens: base-tokens.txt
-Execution Mode: Plugin
-Encoder device: OpenVINO EP with device = NPU (plugin mode)
-Decoder device: OpenVINO EP with device = NPU (plugin mode)
-Encoder processing time: 61.96 ms
+Inference device: NPU
+@@@@@ ep_device.ep_metadata = {'ov_device': 'NPU', 'version': '1.2.0-dev+99f5532d5'}
+Encoder processing time: 59.59 ms
 detecting language
-Decoder processing time: 26.31 ms
+Decoder processing time: 23.05 ms
 detected language:  en
 [50258, 50259, 50359, 50363]
-Decoder processing time: 9.85 ms
-Decoder processing time: 12.01 ms
-Decoder processing time: 9.58 ms
-Decoder processing time: 9.69 ms
-Decoder processing time: 9.74 ms
-Decoder processing time: 9.01 ms
-Decoder processing time: 9.72 ms
+Decoder processing time: 9.71 ms
+Decoder processing time: 11.79 ms
+Decoder processing time: 9.87 ms
+Decoder processing time: 9.32 ms
+Decoder processing time: 9.34 ms
+Decoder processing time: 10.46 ms
+Decoder processing time: 14.51 ms
+Decoder processing time: 11.45 ms
 Decoder processing time: 10.26 ms
-Decoder processing time: 8.85 ms
-Decoder processing time: 8.80 ms
+Decoder processing time: 9.46 ms
 
 Transcribed:
 How are you doing today?
 
-Successfully unregistered Plugin EP
+Successfully unregistered execution provider: OpenVINOExecutionProvider
 
 (python313_venv) C:\GitHub\whisper-ovep-python-static>
 ```

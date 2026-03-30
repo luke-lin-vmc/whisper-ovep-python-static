@@ -8,6 +8,7 @@ import argparse
 import base64
 from typing import Tuple
 import time
+from pathlib import Path
 
 import kaldi_native_fbank as knf
 import numpy as np
@@ -19,6 +20,8 @@ import librosa
 # Add openvino libs to path as onnxruntime_providers_openvino.dll depends on openvino.dll. See https://github.com/intel/onnxruntime/releases/
 import onnxruntime.tools.add_openvino_win_libs as utils
 utils.add_openvino_libs_to_path()
+
+ov_ep_name = "OpenVINOExecutionProvider"
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -53,6 +56,13 @@ def get_args():
     )
 
     parser.add_argument(
+        "--plugin", 
+        type=str,
+        required=True,
+        help="Path to OpenVINO plugin DLL (Required for plugin mode)"
+    )
+
+    parser.add_argument(
         "sound_file",
         type=str,
         help="Path to the test wave",
@@ -76,44 +86,63 @@ def create_attention_mask(current_index: int, max_ctx: int = 448) -> torch.Tenso
     return attention_mask
 
 
+# Find CPUExecutionProvider device
+def get_cpu_ep_device():
+    # get available EP devices
+    ep_devices = ort.get_ep_devices()   
+    for ep_device in ep_devices:
+        if "CPUExecutionProvider" in ep_device.ep_name:
+            return ep_device
+    return None
+
+# Find matched OpenVINOExecutionProvider device
+def get_ov_ep_device(device: str):
+    # get available EP devices
+    ep_devices = ort.get_ep_devices()   
+    for ep_device in ep_devices:
+        if ov_ep_name in ep_device.ep_name:
+            metadata = ep_device.ep_metadata
+            print(f"@@@@@ ep_device.ep_metadata = {metadata}")
+            if metadata.get("ov_device") == device:
+                return ep_device
+    return None
+
 class OnnxModel:
     def __init__(
         self,
         encoder: str,
         decoder: str,
-        encoder_device: str,
-        decoder_device: str,
+        device: str,
     ):
         session_opts = ort.SessionOptions()
         session_opts.inter_op_num_threads = 1
         session_opts.intra_op_num_threads = 4
 
-        self.session_opts = session_opts
-        self.encoder_device = encoder_device
-        self.decoder_device = decoder_device
-
-        self.init_encoder(encoder, encoder_device)
-        self.init_decoder(decoder, decoder_device)
-
-    def init_encoder(self, encoder: str, device: str):
+        provider_options = {}
         if device in ["CPU", "GPU", "NPU"]:
-            print(f"Encoder device: OpenVINO EP with device = {device}")
-            providers = ['OpenVINOExecutionProvider']
-            provider_options = [{"device_type": device}]
-            
+            ep_device = get_ov_ep_device(device)
+            if ep_device is None:
+                raise ValueError(f"Cannot find OpenVINO EP with device={device}")
+
             # For NPU device caching
             if device == "NPU":
-                 provider_options[0]["cache_dir"] = "cache"
+                provider_options["cache_dir"] = "cache"
         else:
-            print("Encoder device: Using Default CPU Executor.")
-            providers = ["CPUExecutionProvider"]
-            provider_options = None
-            
+            ep_device = get_cpu_ep_device()
+            if ep_device is None:
+                raise ValueError(f"Cannot find CPU Execution Provider")
+
+        # Add provider with matched devices
+        session_opts.add_provider_for_devices([ep_device], provider_options)
+
+        self.session_opts = session_opts
+        self.init_encoder(encoder)
+        self.init_decoder(decoder)
+ 
+    def init_encoder(self, encoder: str):
         self.encoder = ort.InferenceSession(
             encoder,
             sess_options=self.session_opts,
-            providers=providers,
-            provider_options=provider_options
         )
 
         meta = self.encoder.get_modelmeta().custom_metadata_map
@@ -141,25 +170,10 @@ class OnnxModel:
 
         self.is_multilingual = int(meta["is_multilingual"]) == 1
 
-    def init_decoder(self, decoder: str, device: str):
-        if device in ["CPU", "GPU", "NPU"]:
-            print(f"Decoder device: OpenVINO EP with device = {device}")
-            providers = ['OpenVINOExecutionProvider']
-            provider_options = [{"device_type": device}]
-            
-            # For NPU device, OpenVINO typically benefits from caching
-            if device == "NPU":
-                 provider_options[0]["cache_dir"] = "cache"
-        else:
-            print("Decoder device: Using Default CPU Executor.")
-            providers = ["CPUExecutionProvider"]
-            provider_options = None
-            
+    def init_decoder(self, decoder: str):
         self.decoder = ort.InferenceSession(
             decoder,
             sess_options=self.session_opts,
-            providers=providers,
-            provider_options=provider_options
         )
 
     def run_encoder(
@@ -352,25 +366,32 @@ def compute_features(filename: str, dim: int = 80) -> torch.Tensor:
 def main():
     args = get_args()
 
-    encoder_path = args.model_type + "-encoder.onnx";
-    decoder_path = args.model_type + "-decoder.onnx";
-    tokens_path = args.model_type + "-tokens.txt";
-    
-    encoder_device = decoder_device = None;
-    if args.device is not None:
-        encoder_device = decoder_device = args.device.upper()
+    if not args.plugin:
+        print("Error: Plugin mode requires --plugin to specify the plugin DLL path")
+        return
 
+    print(f"Registering execution provider: {ov_ep_name}, plugin: {args.plugin}")
+    ort.register_execution_provider_library(ov_ep_name, str(Path(args.plugin)))
+
+    encoder_path = args.model_type + "-encoder.onnx"
+    decoder_path = args.model_type + "-decoder.onnx"
+    tokens_path = args.model_type + "-tokens.txt"
+   
     print(f"Whisper encoder model: {encoder_path}")
-    print(f"Whisper encoder device: {encoder_device}")
     print(f"Whisper decoder model: {decoder_path}")
-    print(f"Whisper decoder device: {decoder_device}")
     print(f"Whisper tokens: {tokens_path}")
+
+    if args.device is not None:
+        device = args.device.upper()
+        print(f"Inference device: {device}")        
+    else:
+        device = None
+        print(f"Inference device: CPUExecutionProvider")
 
     model = OnnxModel(
         encoder_path, 
         decoder_path, 
-        encoder_device, 
-        decoder_device
+        device,
     )
     n_mels = model.n_mels
     n_text_ctx = model.n_text_ctx
@@ -467,6 +488,11 @@ def main():
 
     print(f"\nTranscribed:\n{s.decode().strip()}")
 
+    try:
+        ort.unregister_execution_provider_library(ov_ep_name)
+        print(f"\nSuccessfully unregistered execution provider: {ov_ep_name}")
+    except Exception as e:
+        print(f"\nWarning: Failed to unregister Plugin EP: {e}")
 
 if __name__ == "__main__":
     main()
