@@ -31,6 +31,7 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 | Model                     | CPU    | GPU    | NPU    |
 |---------------------------|--------|--------|--------|
 | base                      | OK     | OK     | OK     |
+| small                     | OK     | OK     | OK     |
 | turbo<br>(large v3 turbo) | OK     | OK     | OK     |
 
 ### Sample log (device is NPU)
