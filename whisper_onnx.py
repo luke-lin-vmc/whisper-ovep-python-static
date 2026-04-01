@@ -143,7 +143,7 @@ class OnnxModel:
         self.encoder = ort.InferenceSession(
             encoder,
             sess_options=self.session_opts,
-        )
+        ) # Do not set the providers here; otherwise, the providers specified here will take precedence. See https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/onnxruntime_inference_collection.py#L609
 
         meta = self.encoder.get_modelmeta().custom_metadata_map
         self.n_text_layer = int(meta["n_text_layer"])
@@ -174,7 +174,7 @@ class OnnxModel:
         self.decoder = ort.InferenceSession(
             decoder,
             sess_options=self.session_opts,
-        )
+        ) # Do not set the providers here; otherwise, the providers specified here will take precedence. See https://github.com/microsoft/onnxruntime/blob/main/onnxruntime/python/onnxruntime_inference_collection.py#L609
 
     def run_encoder(
         self,
