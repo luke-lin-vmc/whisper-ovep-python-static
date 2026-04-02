@@ -81,23 +81,14 @@ class OnnxModel:
         self,
         encoder: str,
         decoder: str,
-        encoder_device: str,
-        decoder_device: str,
+        device: str,
     ):
         session_opts = ort.SessionOptions()
         session_opts.inter_op_num_threads = 1
         session_opts.intra_op_num_threads = 4
 
-        self.session_opts = session_opts
-        self.encoder_device = encoder_device
-        self.decoder_device = decoder_device
-
-        self.init_encoder(encoder, encoder_device)
-        self.init_decoder(decoder, decoder_device)
-
-    def init_encoder(self, encoder: str, device: str):
         if device in ["CPU", "GPU", "NPU"]:
-            print(f"Encoder device: OpenVINO EP with device = {device}")
+            print(f"Execution Provider: OpenVINO EP with device = {device}")
             providers = ['OpenVINOExecutionProvider']
             provider_options = [{"device_type": device}]
             
@@ -105,15 +96,23 @@ class OnnxModel:
             if device == "NPU":
                  provider_options[0]["cache_dir"] = "cache"
         else:
-            print("Encoder device: Using Default CPU Executor.")
+            print("Execution Provider: Using Default CPU Execution Provider")
             providers = ["CPUExecutionProvider"]
             provider_options = None
-            
+          
+        self.session_opts = session_opts
+        self.providers = providers
+        self.provider_options = provider_options
+
+        self.init_encoder(encoder)
+        self.init_decoder(decoder)
+
+    def init_encoder(self, encoder: str):
         self.encoder = ort.InferenceSession(
             encoder,
             sess_options=self.session_opts,
-            providers=providers,
-            provider_options=provider_options
+            providers=self.providers,
+            provider_options=self.provider_options
         )
 
         meta = self.encoder.get_modelmeta().custom_metadata_map
@@ -141,25 +140,12 @@ class OnnxModel:
 
         self.is_multilingual = int(meta["is_multilingual"]) == 1
 
-    def init_decoder(self, decoder: str, device: str):
-        if device in ["CPU", "GPU", "NPU"]:
-            print(f"Decoder device: OpenVINO EP with device = {device}")
-            providers = ['OpenVINOExecutionProvider']
-            provider_options = [{"device_type": device}]
-            
-            # For NPU device, OpenVINO typically benefits from caching
-            if device == "NPU":
-                 provider_options[0]["cache_dir"] = "cache"
-        else:
-            print("Decoder device: Using Default CPU Executor.")
-            providers = ["CPUExecutionProvider"]
-            provider_options = None
-            
+    def init_decoder(self, decoder: str):
         self.decoder = ort.InferenceSession(
             decoder,
             sess_options=self.session_opts,
-            providers=providers,
-            provider_options=provider_options
+            providers=self.providers,
+            provider_options=self.provider_options
         )
 
     def run_encoder(
@@ -352,25 +338,25 @@ def compute_features(filename: str, dim: int = 80) -> torch.Tensor:
 def main():
     args = get_args()
 
-    encoder_path = args.model_type + "-encoder.onnx";
-    decoder_path = args.model_type + "-decoder.onnx";
-    tokens_path = args.model_type + "-tokens.txt";
-    
-    encoder_device = decoder_device = None;
-    if args.device is not None:
-        encoder_device = decoder_device = args.device.upper()
-
+    encoder_path = args.model_type + "-encoder.onnx"
+    decoder_path = args.model_type + "-decoder.onnx"
+    tokens_path = args.model_type + "-tokens.txt"
+   
     print(f"Whisper encoder model: {encoder_path}")
-    print(f"Whisper encoder device: {encoder_device}")
     print(f"Whisper decoder model: {decoder_path}")
-    print(f"Whisper decoder device: {decoder_device}")
     print(f"Whisper tokens: {tokens_path}")
+
+    if args.device is not None:
+        device = args.device.upper()
+        print(f"Inference device: {device}")        
+    else:
+        device = None
+        print(f"Inference device: CPUExecutionProvider")
 
     model = OnnxModel(
         encoder_path, 
         decoder_path, 
-        encoder_device, 
-        decoder_device
+        device,
     )
     n_mels = model.n_mels
     n_text_ctx = model.n_text_ctx
