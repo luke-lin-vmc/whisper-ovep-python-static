@@ -1,5 +1,5 @@
 # About whisper-ovep-python-static
-This Python pipeline is to show how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html)
+This Python pipeline shows how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html)
 
 This implementation is forked from sherpa-onnx project
 https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
@@ -42,7 +42,7 @@ options:
   -h, --help            show this help message and exit
   --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo}
                         Model type
-  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, language
+  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, ja, fr. If None, language
                         will be detected automatically
   --task {transcribe,translate}
                         Valid values are: transcribe, translate. Default task is transcribe
@@ -65,7 +65,7 @@ Run on NPU, translate
 ```
 python whisper_onnx.py --model_type base --device NPU --task translate zh.wav
 ```
-:warning:[NOTE] The 1st time running on NPU will take long time (about 3 minutes) on model compiling. [OpenVINO Model Caching](https://docs.openvino.ai/2025/openvino-workflow/running-inference/optimize-inference/optimizing-latency/model-caching-overview.html) has been enabled for NPU to ease the issue. This feature will cache compiled models. Although the 1st run still takes long, but later runs can be faster as model compilation has been skipped.
+:warning:[NOTE] The 1st time running on NPU will take a long time (about 3 minutes) for model compiling. [OpenVINO Model Caching](https://docs.openvino.ai/2025/openvino-workflow/running-inference/optimize-inference/optimizing-latency/model-caching-overview.html) has been enabled for NPU to ease the issue. This feature will cache compiled models. Although the 1st run still takes long, but later runs can be faster as model compilation is skipped.
 ## Tested Models and Devices
 The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
 * ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8247 (10/22/2025)```
@@ -82,8 +82,8 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 | large<br>(large v3)       | OK     | OK     | Fail** |
 | turbo<br>(large v3 turbo) | OK     | OK     | OK     |
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pileline worked fine but the EN speech was misdetected as PL, need to specify "```--language en```" to get correct result<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**&nbsp;Pileline didn't worked due to insufficient memory
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pipeline worked fine but the EN speech was misdetected as PL, need to specify "```--language en```" to get correct result<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**&nbsp;Pipeline didn't work due to insufficient memory
 
 ### Sample log (device is NPU)
 ```
@@ -132,5 +132,5 @@ pip uninstall onnxruntime-openvino
 pip install onnxruntime-openvino~=1.24.1
 ```
 
-2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPU (such like Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
+2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPUs (such as Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
 * This issue is supposed to be fixed in OpenVINO 2026.0

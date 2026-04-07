@@ -34,7 +34,7 @@ def get_args():
         "--language",
         type=str,
         help="""The actual spoken language in the audio.
-        Example values, en, de, zh, jp, fr.
+        Example values, en, de, zh, ja, fr.
         If None, language will be detected automatically""",
     )
 
