@@ -87,33 +87,30 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 
 ### Sample log (device is NPU)
 ```
-(openvino_venv) C:\Github\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
+(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
 Whisper encoder model: base-encoder.onnx
-Whisper encoder device: NPU
 Whisper decoder model: base-decoder.onnx
-Whisper decoder device: NPU
 Whisper tokens: base-tokens.txt
-Encoder device: OpenVINO EP with device = NPU
-Decoder device: OpenVINO EP with device = NPU
-Encoder processing time: 62.23 ms
+Inference device: NPU
+Execution Provider: OpenVINO EP with device = NPU
+Encoder processing time: 61.01 ms
 detecting language
-Decoder processing time: 20.30 ms
+Decoder processing time: 25.25 ms
 detected language:  en
 [50258, 50259, 50359, 50363]
-Decoder processing time: 10.84 ms
-Decoder processing time: 11.43 ms
-Decoder processing time: 13.22 ms
+Decoder processing time: 13.57 ms
+Decoder processing time: 12.21 ms
+Decoder processing time: 10.17 ms
+Decoder processing time: 9.35 ms
+Decoder processing time: 9.42 ms
+Decoder processing time: 9.16 ms
+Decoder processing time: 8.90 ms
+Decoder processing time: 9.25 ms
 Decoder processing time: 9.54 ms
-Decoder processing time: 9.77 ms
-Decoder processing time: 9.63 ms
-Decoder processing time: 9.06 ms
-Decoder processing time: 9.55 ms
-Decoder processing time: 9.18 ms
-Decoder processing time: 9.28 ms
+Decoder processing time: 8.74 ms
 
 Transcribed:
 How are you doing today?
-
 ```
 [Full log](https://github.com/luke-lin-vmc/whisper-ovep-python-static/blob/main/log_full.txt) (from scratch) is provided for reference
 
