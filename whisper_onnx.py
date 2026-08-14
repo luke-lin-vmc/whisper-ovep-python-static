@@ -13,15 +13,10 @@ from pathlib import Path
 import kaldi_native_fbank as knf
 import numpy as np
 import onnxruntime as ort
+import onnxruntime_ep_openvino as openvino_ep
 import soundfile as sf
 import torch
 import librosa
-
-# Add openvino libs to path as onnxruntime_providers_openvino.dll depends on openvino.dll. See https://github.com/intel/onnxruntime/releases/
-import onnxruntime.tools.add_openvino_win_libs as utils
-utils.add_openvino_libs_to_path()
-
-ov_ep_name = "OpenVINOExecutionProvider"
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -51,15 +46,10 @@ def get_args():
 
     parser.add_argument(
         "--device",
+        choices=['CPU', 'GPU', 'NPU', 'AUTO'],
         type=str,
-        help="Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider will be used by default"
-    )
-
-    parser.add_argument(
-        "--plugin", 
-        type=str,
-        required=True,
-        help="Path to OpenVINO plugin DLL (Required for plugin mode)"
+        default=None,
+        help="Execution device. Use 'CPU', 'GPU', 'NPU' or 'AUTO' for OpenVINO. If not specified, CPUExecutionProvider will be used by default"
     )
 
     parser.add_argument(
@@ -86,27 +76,6 @@ def create_attention_mask(current_index: int, max_ctx: int = 448) -> torch.Tenso
     return attention_mask
 
 
-# Find CPUExecutionProvider device
-def get_cpu_ep_device():
-    # get available EP devices
-    ep_devices = ort.get_ep_devices()   
-    for ep_device in ep_devices:
-        if "CPUExecutionProvider" in ep_device.ep_name:
-            return ep_device
-    return None
-
-# Find matched OpenVINOExecutionProvider device
-def get_ov_ep_device(device: str):
-    # get available EP devices
-    ep_devices = ort.get_ep_devices()   
-    for ep_device in ep_devices:
-        if ov_ep_name in ep_device.ep_name:
-            metadata = ep_device.ep_metadata
-            print(f"@@@@@ ep_device.ep_metadata = {metadata}")
-            if metadata.get("ov_device") == device:
-                return ep_device
-    return None
-
 class OnnxModel:
     def __init__(
         self,
@@ -114,28 +83,69 @@ class OnnxModel:
         decoder: str,
         device: str,
     ):
-        session_opts = ort.SessionOptions()
-        session_opts.inter_op_num_threads = 1
-        session_opts.intra_op_num_threads = 4
 
-        provider_options = {}
+        all_ep_devices = ort.get_ep_devices()
+
+        selected_ep_device = None
         if device in ["CPU", "GPU", "NPU"]:
-            ep_device = get_ov_ep_device(device)
-            if ep_device is None:
-                raise ValueError(f"Cannot find OpenVINO EP with device={device}")
+            # Use OpenVINOExecutionProvider with specified device
+            for d in all_ep_devices:
+                if d.ep_name == "OpenVINOExecutionProvider":
+                    if d.ep_metadata.get("ov_device") == device:
+                        selected_ep_device = d
+                        break
 
-            # For NPU device caching
-            if device == "NPU":
-                provider_options["cache_dir"] = "cache"
+        elif device == "AUTO":
+            # Use OpenVINOExecutionProvider.AUTO
+            for d in all_ep_devices:
+                if d.ep_name == "OpenVINOExecutionProvider.AUTO":
+                    selected_ep_device = d
+                    break
+
         else:
-            ep_device = get_cpu_ep_device()
-            if ep_device is None:
-                raise ValueError(f"Cannot find CPU Execution Provider")
+            # device is None or unrecognized: use default CPUExecutionProvider
+            for d in all_ep_devices:
+                if d.ep_name == "CPUExecutionProvider":
+                    selected_ep_device = d
+                    break
 
-        # Add provider with matched devices
-        session_opts.add_provider_for_devices([ep_device], provider_options)
+        if selected_ep_device is None:
+            raise RuntimeError(f"Error: No execution provider found")
+        else:
+            print(f"Selected Execution Provider device:")
+            print(f"{selected_ep_device.ep_name} {selected_ep_device.ep_metadata.get("ov_device")}\n")
 
-        self.session_opts = session_opts
+        # Create session options
+        sess_options = ort.SessionOptions()
+
+        # Enable model cache if device is NPU
+        ep_options = {}
+        if selected_ep_device.ep_metadata.get("ov_device") == "NPU":
+            # Reference: Multi-Level Nested Configuration https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html#load_config
+            #
+            # Must consider both "OpenVINOExecutionProvider NPU" and "OpenVINOExecutionProvider.AUTO NPU" cases
+            #
+            #    {'load_config':'{
+            #        "AUTO":{
+            #            "DEVICE_PROPERTIES":{
+            #                "NPU":{
+            #                    "CACHE_DIR":"cache"}
+            #                }
+            #            },
+            #        "NPU":{
+            #            "CACHE_DIR":"cache"}
+            #            }'
+            #    }
+            ep_options["load_config"] = "{\"AUTO\":{\"DEVICE_PROPERTIES\":{\"NPU\":{\"CACHE_DIR\":\"cache\"}}},\"NPU\":{\"CACHE_DIR\":\"cache\"}}"
+
+        if ep_options:
+            print(f"Execution Provider option:")
+            print(f"{ep_options}\n")
+
+        # Add OpenVINO EP to the session
+        sess_options.add_provider_for_devices([selected_ep_device], ep_options)
+
+        self.session_opts = sess_options
         self.init_encoder(encoder)
         self.init_decoder(decoder)
  
@@ -363,15 +373,36 @@ def compute_features(filename: str, dim: int = 80) -> torch.Tensor:
     return mel
 
 
+def reg_ovep():
+    # Get the plugin library path
+    ovep_lib_path = openvino_ep.get_library_path()
+    print(f"\nOpenVINO Execution Provider plugin library path:")
+    print(f"{ovep_lib_path}\n")
+
+    # Register the plugin with ONNX Runtime
+    registration_name = "openvino_ep"
+    ort.register_execution_provider_library(registration_name, ovep_lib_path)
+
+    # Check OpenVINO EP name, should be "OpenVINOExecutionProvider"
+    ovep_name = openvino_ep.get_ep_name()
+    if ovep_name != "OpenVINOExecutionProvider":
+        raise RuntimeError(f"Unknown OpenVINO Execution Provider name: {ovep_name}")
+
+    # List all ep devices
+    all_ep_devices = ort.get_ep_devices()
+    print("Available Execution Provider devices:")
+    for d in all_ep_devices:
+        if ovep_name in d.ep_name:   # could be "OpenVINOExecutionProvider" or "OpenVINOExecutionProvider.AUTO"
+            print(f"{d.ep_name} {d.ep_metadata.get("ov_device")}")
+        else:
+            print(f"{d.ep_name}")
+    print()
+    
+    
 def main():
     args = get_args()
 
-    if not args.plugin:
-        print("Error: Plugin mode requires --plugin to specify the plugin DLL path")
-        return
-
-    print(f"Registering execution provider: {ov_ep_name}, plugin: {args.plugin}")
-    ort.register_execution_provider_library(ov_ep_name, str(Path(args.plugin)))
+    reg_ovep()
 
     encoder_path = args.model_type + "-encoder.onnx"
     decoder_path = args.model_type + "-decoder.onnx"
@@ -381,17 +412,10 @@ def main():
     print(f"Whisper decoder model: {decoder_path}")
     print(f"Whisper tokens: {tokens_path}")
 
-    if args.device is not None:
-        device = args.device.upper()
-        print(f"Inference device: {device}")        
-    else:
-        device = None
-        print(f"Inference device: CPUExecutionProvider")
-
     model = OnnxModel(
         encoder_path, 
         decoder_path, 
-        device,
+        args.device,
     )
     n_mels = model.n_mels
     n_text_ctx = model.n_text_ctx
@@ -487,12 +511,6 @@ def main():
             s += base64.b64decode(token_table[i])
 
     print(f"\nTranscribed:\n{s.decode().strip()}")
-
-    try:
-        ort.unregister_execution_provider_library(ov_ep_name)
-        print(f"\nSuccessfully unregistered execution provider: {ov_ep_name}")
-    except Exception as e:
-        print(f"\nWarning: Failed to unregister Plugin EP: {e}")
 
 if __name__ == "__main__":
     main()

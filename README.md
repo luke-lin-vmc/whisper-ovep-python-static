@@ -1,4 +1,4 @@
-# whisper-ovep-python-static plug-in (ABI) mode
+# whisper-ovep-python-static plug-in mode (onnxruntime-ep-openvino)
 ## Prepare models
 Run the following commands to export models
 ```
@@ -13,58 +13,62 @@ base-encoder.onnx
 base-decoder.onnx
 base-tokens.txt
 ```
-## Prepare OVEP plug-in DLLs
-* Input ```pip show pip``` to find your Python site-packages location.
-* Copy ```onnxruntime_providers_openvino_plugin.dll``` and ```onnxruntime_providers_openvino_plugin_impl.dll``` (under ```.\plugin```) into Python ```site-packages\openvino\libs```
-
-P.S. plugin DLLs are downloaded from [Intel private repo](https://gfx-assets-build.fm.intel.com/artifactory/onnxruntime-builds/ci/develop/onnxruntime-ci-develop-236/artifacts/Windows/bdba/)
 
 ## Run
 ```
-python whisper_onnx.py --model_type base --device NPU --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
+python whisper_onnx.py --model_type base --device GPU how_are_you_doing_today.wav
 ```
 ## Tested Models and Devices
 The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
-* ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8247 (10/22/2025)```
-* ```NPU: Intel(R) AI Boost, driver 32.0.100.4621 (2/25/2026)```
+* ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8860 (6/25/2026)```
+* ```NPU: Intel(R) AI Boost, driver 32.0.100.4841 (7/24/2026)```
 ### Result
 | Model                     | CPU    | GPU    | NPU    |
 |---------------------------|--------|--------|--------|
-| base                      | OK     | OK     | OK     |
-| small                     | OK     | OK     | OK     |
-| turbo<br>(large v3 turbo) | OK     | OK     | OK     |
+| base                      | OK     | OK     | NG     |
+| small                     | OK     | OK     | NG     |
+| turbo<br>(large v3 turbo) | OK     | OK     | NG     |
 
-### Sample log (device is NPU)
+### Sample log
 ```
-(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU --plugin C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll how_are_you_doing_today.wav
-Registering execution provider: OpenVINOExecutionProvider, plugin: C:\Python\python313_venv\Lib\site-packages\openvino\libs\onnxruntime_providers_openvino_plugin.dll
+(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device GPU how_are_you_doing_today.wav
+
+OpenVINO Execution Provider plugin library path:
+C:\Python\python313_venv\Lib\site-packages\onnxruntime_ep_openvino\onnxruntime_providers_openvino_plugin.dll
+
+Available Execution Provider devices:
+CPUExecutionProvider
+OpenVINOExecutionProvider NPU
+OpenVINOExecutionProvider GPU
+OpenVINOExecutionProvider CPU
+OpenVINOExecutionProvider.AUTO NPU
+OpenVINOExecutionProvider.AUTO GPU
+OpenVINOExecutionProvider.AUTO CPU
+
 Whisper encoder model: base-encoder.onnx
 Whisper decoder model: base-decoder.onnx
 Whisper tokens: base-tokens.txt
-Inference device: NPU
-@@@@@ ep_device.ep_metadata = {'ov_device': 'NPU', 'version': '1.2.0-dev+99f5532d5'}
-Encoder processing time: 59.59 ms
+Selected Execution Provider device:
+OpenVINOExecutionProvider GPU
+
+Encoder processing time: 31.10 ms
 detecting language
-Decoder processing time: 23.05 ms
+Decoder processing time: 35.12 ms
 detected language:  en
 [50258, 50259, 50359, 50363]
-Decoder processing time: 9.71 ms
-Decoder processing time: 11.79 ms
-Decoder processing time: 9.87 ms
-Decoder processing time: 9.32 ms
-Decoder processing time: 9.34 ms
-Decoder processing time: 10.46 ms
-Decoder processing time: 14.51 ms
-Decoder processing time: 11.45 ms
-Decoder processing time: 10.26 ms
-Decoder processing time: 9.46 ms
+Decoder processing time: 12.44 ms
+Decoder processing time: 16.70 ms
+Decoder processing time: 13.47 ms
+Decoder processing time: 13.05 ms
+Decoder processing time: 13.36 ms
+Decoder processing time: 13.28 ms
+Decoder processing time: 13.08 ms
+Decoder processing time: 12.50 ms
+Decoder processing time: 12.58 ms
+Decoder processing time: 13.42 ms
 
 Transcribed:
 How are you doing today?
-
-Successfully unregistered execution provider: OpenVINOExecutionProvider
-
-(python313_venv) C:\GitHub\whisper-ovep-python-static>
 ```
 ## Reference
-https://github.com/intel-innersource/frameworks.ai.onnxruntime.samples/tree/main
+https://pypi.org/project/onnxruntime-ep-openvino/

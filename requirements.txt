@@ -4,5 +4,5 @@ openai-whisper
 kaldi_native_fbank
 soundfile
 librosa
-onnxruntime-openvino~=1.23.0
-openvino~=2025.3.0
+onnxruntime
+onnxruntime-ep-OpenVINO
