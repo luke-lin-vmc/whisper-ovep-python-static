@@ -32,7 +32,7 @@ def get_args():
         "--language",
         type=str,
         help="""The actual spoken language in the audio.
-        Example values, en, de, zh, jp, fr.
+        Example values, en, de, zh, ja, fr.
         If None, language will be detected automatically""",
     )
 
@@ -411,6 +411,13 @@ def main():
     print(f"Whisper encoder model: {encoder_path}")
     print(f"Whisper decoder model: {decoder_path}")
     print(f"Whisper tokens: {tokens_path}")
+
+    if args.device is not None:
+        device = args.device.upper()
+        print(f"Inference device: {device}")        
+    else:
+        device = None
+        print(f"Inference device: CPUExecutionProvider")
 
     model = OnnxModel(
         encoder_path, 
