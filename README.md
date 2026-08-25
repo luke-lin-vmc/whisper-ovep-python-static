@@ -1,5 +1,5 @@
 # About whisper-ovep-python-static
-This Python pipeline shows how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://onnxruntime.ai/docs/execution-providers/OpenVINO-ExecutionProvider.html)
+This Python pipeline shows how to run Whisper on Intel CPU/GPU/NPU thru [ONNX Runtime](https://github.com/microsoft/onnxruntime) + [OpenVINO Execution Provider](https://pypi.org/project/onnxruntime-ep-openvino)
 
 This implementation is forked from sherpa-onnx project
 https://github.com/k2-fsa/sherpa-onnx/tree/master/scripts/whisper
@@ -10,7 +10,7 @@ https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/
 Other audio samples ("```en.wav```", "```ja.wav```" and "```zh.wav```") are downloaded from [Hugging Face sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/tree/main/test_wavs)
 
 ### Key features
-* Use plug-in mode (onnxruntime-ep-openvino)
+* Use plug-in mode ([onnxruntime-ep-openvino](https://pypi.org/project/onnxruntime-ep-openvino))
 * Use K-V cache to speed up inference
 * Models are converted to static (required for NPU)
 
