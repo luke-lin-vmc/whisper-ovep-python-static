@@ -10,6 +10,7 @@ https://storage.openvinotoolkit.org/models_contrib/speech/2021.2/librispeech_s5/
 Other audio samples ("```en.wav```", "```ja.wav```" and "```zh.wav```") are downloaded from [Hugging Face sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10](https://huggingface.co/csukuangfj/sherpa-onnx-streaming-zipformer-ar_en_id_ja_ru_th_vi_zh-2025-02-10/tree/main/test_wavs)
 
 ### Key features
+* Use plug-in mode (onnxruntime-ep-openvino)
 * Use K-V cache to speed up inference
 * Models are converted to static (required for NPU)
 
@@ -18,6 +19,8 @@ Other audio samples ("```en.wav```", "```ja.wav```" and "```zh.wav```") are down
 Run the following commands to export models
 ```
 pip install -r requirements.txt
+```
+```
 python export-onnx.py --model base
 ```
 * Supported models: ```tiny``` ```base``` ```small``` ```medium``` ```large-v1``` ```large-v2``` ```large```(aka large v3) and ```turbo```(aka large v3 turbo)<br>
@@ -28,30 +31,31 @@ base-encoder.onnx
 base-decoder.onnx
 base-tokens.txt
 ```
+
 ## Run
-Usage
 ```
-usage: whisper_onnx.py [-h] --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo} [--language LANGUAGE]
-                       [--task {transcribe,translate}] [--device DEVICE]
-                       sound_file
-
-positional arguments:
-  sound_file            Path to the test wave
-
+python whisper_onnx.py --model_type base --device GPU how_are_you_doing_today.wav
+```
+```
 options:
   -h, --help            show this help message and exit
   --model_type {tiny,base,small,medium,large-v1,large-v2,large,turbo}
                         Model type
-  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, ja, fr. If None, language
+  --language LANGUAGE   The actual spoken language in the audio. Example values, en, de, zh, jp, fr. If None, language
                         will be detected automatically
   --task {transcribe,translate}
                         Valid values are: transcribe, translate. Default task is transcribe
-  --device DEVICE       Execution device. Use 'CPU', 'GPU', 'NPU' for OpenVINO. If not specified, CPUExecutionProvider
-                        will be used by default
+  --device {CPU,GPU,NPU,AUTO}
+                        Execution device. Use 'CPU', 'GPU', 'NPU' or 'AUTO' for OpenVINO. If not specified,
+                        CPUExecutionProvider will be used by default
 ```
 Run on CPU
 ```
 python whisper_onnx.py --model_type base --device CPU how_are_you_doing_today.wav
+```
+Run on CPU, translate
+```
+python whisper_onnx.py --model_type base --device CPU --task translate zh.wav
 ```
 Run on GPU
 ```
@@ -61,15 +65,15 @@ Run on NPU
 ```
 python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
 ```
-Run on NPU, translate
+Run on a AUTO selected device, the selection priority is NPU, GPU then CPU
 ```
-python whisper_onnx.py --model_type base --device NPU --task translate zh.wav
+python whisper_onnx.py --model_type base --device AUTO how_are_you_doing_today.wav
 ```
 :warning:[NOTE] The 1st time running on NPU will take a long time (about 3 minutes) for model compiling. [OpenVINO Model Caching](https://docs.openvino.ai/2025/openvino-workflow/running-inference/optimize-inference/optimizing-latency/model-caching-overview.html) has been enabled for NPU to ease the issue. This feature will cache compiled models. Although the 1st run still takes long, but later runs can be faster as model compilation is skipped.
 ## Tested Models and Devices
 The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system, with
-* ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8247 (10/22/2025)```
-* ```NPU: Intel(R) AI Boost, driver 32.0.100.4621 (2/25/2026)```
+* ```iGPU: Intel(R) Arc(TM) 130V GPU (16GB), driver 32.0.101.8860 (6/25/2026)```
+* ```NPU: Intel(R) AI Boost, driver 32.0.100.4841 (7/24/2026)```
 ### Result
 | Model                     | CPU    | GPU    | NPU    |
 |---------------------------|--------|--------|--------|
@@ -85,52 +89,48 @@ The test was done on a ```Intel(R) Core(TM) Ultra 5 238V (Lunar Lake)``` system,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;Pipeline worked fine but the EN speech was misdetected as PL, need to specify "```--language en```" to get correct result<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;**&nbsp;Pipeline didn't work due to insufficient memory
 
-### Sample log (device is NPU)
+### Sample log
 ```
-(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device NPU how_are_you_doing_today.wav
+(python313_venv) C:\GitHub\whisper-ovep-python-static>python whisper_onnx.py --model_type base --device GPU how_are_you_doing_today.wav
+
+OpenVINO Execution Provider plugin library path:
+C:\Python\python313_venv\Lib\site-packages\onnxruntime_ep_openvino\onnxruntime_providers_openvino_plugin.dll
+
+Available Execution Provider devices:
+CPUExecutionProvider
+OpenVINOExecutionProvider NPU
+OpenVINOExecutionProvider GPU
+OpenVINOExecutionProvider CPU
+OpenVINOExecutionProvider.AUTO NPU
+OpenVINOExecutionProvider.AUTO GPU
+OpenVINOExecutionProvider.AUTO CPU
+
 Whisper encoder model: base-encoder.onnx
 Whisper decoder model: base-decoder.onnx
 Whisper tokens: base-tokens.txt
-Inference device: NPU
-Execution Provider: OpenVINO EP with device = NPU
-Encoder processing time: 61.01 ms
+Selected Execution Provider device:
+OpenVINOExecutionProvider GPU
+
+Encoder processing time: 22.81 ms
 detecting language
-Decoder processing time: 25.25 ms
+Decoder processing time: 21.29 ms
 detected language:  en
 [50258, 50259, 50359, 50363]
-Decoder processing time: 13.57 ms
-Decoder processing time: 12.21 ms
-Decoder processing time: 10.17 ms
-Decoder processing time: 9.35 ms
-Decoder processing time: 9.42 ms
-Decoder processing time: 9.16 ms
-Decoder processing time: 8.90 ms
-Decoder processing time: 9.25 ms
-Decoder processing time: 9.54 ms
-Decoder processing time: 8.74 ms
+Decoder processing time: 9.86 ms
+Decoder processing time: 9.88 ms
+Decoder processing time: 10.39 ms
+Decoder processing time: 9.12 ms
+Decoder processing time: 10.68 ms
+Decoder processing time: 10.53 ms
+Decoder processing time: 9.08 ms
+Decoder processing time: 10.11 ms
+Decoder processing time: 9.13 ms
+Decoder processing time: 9.23 ms
 
 Transcribed:
 How are you doing today?
 ```
 [Full log](https://github.com/luke-lin-vmc/whisper-ovep-python-static/blob/main/log_full.txt) (from scratch) is provided for reference
 
-## Known issues
-1. If the following warning appears when running the pipeline thru OVEP for the 1st time
-```
-C:\Users\...\site-packages\onnxruntime\capi\onnxruntime_inference_collection.py:123:
-User Warning: Specified provider 'OpenVINOExecutionProvider' is not in available provider names.
-Available providers: 'AzureExecutionProvider, CPUExecutionProvider'
-```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;This would be caused by that both ```onnxruntime``` and ```onnxruntime-openvino``` are installed. Solution is to remove both of them then re-install ```onnxruntime-openvino```
-```
-pip uninstall -y onnxruntime onnxruntime-openvino
-pip install onnxruntime-openvino~=1.24.1
-```
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Or simply to re-install ```onnxruntime-openvino``` if you would like to keep ```onnxruntime```
-```
-pip uninstall onnxruntime-openvino
-pip install onnxruntime-openvino~=1.24.1
-```
-
-2. Only Arc iGPUs (Meteor Lake, Lunar Lake, Panther Lake and Arrow Lake H-series) are supported. Running on unsupported iGPUs (such as Iris Xe or UHD) may lead to incorrect output, such as "!!!!!!!!!!!!!!".
-* This issue is supposed to be fixed in OpenVINO 2026.0
+## Reference
+https://pypi.org/project/onnxruntime-ep-openvino/
